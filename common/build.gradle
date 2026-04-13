@@ -1,0 +1,14 @@
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+}
+
+// common là library, không phải bootable application
+// Không cần bootJar vì Spring Boot plugin không được apply ở đây
+jar {
+    enabled = true
+}

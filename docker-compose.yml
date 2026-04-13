@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  postgres-user:
+    image: postgres:16-alpine
+    container_name: postgres-user
+    environment:
+      POSTGRES_DB: user_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-user-data:/var/lib/postgresql/data
+    networks:
+      - discord-net
+
+  postgres-server:
+    image: postgres:16-alpine
+    container_name: postgres-server
+    environment:
+      POSTGRES_DB: server_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-server-data:/var/lib/postgresql/data
+    networks:
+      - discord-net
+
+  postgres-message:
+    image: postgres:16-alpine
+    container_name: postgres-message
+    environment:
+      POSTGRES_DB: message_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres-message-data:/var/lib/postgresql/data
+    networks:
+      - discord-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - discord-net
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - discord-net
+
+volumes:
+  postgres-user-data:
+  postgres-server-data:
+  postgres-message-data:
+
+networks:
+  discord-net:
+    driver: bridge

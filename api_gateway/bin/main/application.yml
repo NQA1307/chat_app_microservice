@@ -1,0 +1,54 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      routes:
+        # ── User Service ──────────────────────────────────────
+        - id: user-service-auth
+          uri: lb://user-service
+          predicates:
+            - Path=/api/auth/**
+          # Không cần JWT filter — đây là public endpoints
+
+        - id: user-service-users
+          uri: lb://user-service
+          predicates:
+            - Path=/api/users/**
+          filters:
+            - name: JwtAuthFilter   # Custom filter validate JWT
+
+        # ── Server Service ────────────────────────────────────
+        - id: server-service
+          uri: lb://server-service
+          predicates:
+            - Path=/api/servers/**
+          filters:
+            - name: JwtAuthFilter
+
+        # ── Message Service (REST) ─────────────────────────────
+        - id: message-service-rest
+          uri: lb://message-service
+          predicates:
+            - Path=/api/messages/**
+          filters:
+            - name: JwtAuthFilter
+
+        # ── Message Service (WebSocket) ───────────────────────
+        - id: message-service-ws
+          uri: lb://message-service
+          predicates:
+            - Path=/ws/**
+
+jwt:
+  secret: "404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970"
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+  instance:
+    prefer-ip-address: true

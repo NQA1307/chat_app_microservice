@@ -1,0 +1,16 @@
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: user-service
+          uri: lb://user-service
+          predicates:
+            - Path=/api/auth/**, /api/users/**
+        - id: auth-service
+          uri: lb://auth-service
+          predicates:
+            - Path=/api/servers/**, /api/channels/**
+        - id: message-service
+          uri: lb://message-service
+          predicates:
+            - Path=/api/messages/**, /ws/**
