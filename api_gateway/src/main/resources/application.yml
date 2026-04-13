@@ -37,6 +37,14 @@ spring:
           filters:
             - name: JwtAuthFilter
 
+        # ── Message Service (Direct Message) ─────────────────
+        - id: message-service-dm
+          uri: lb://message-service
+          predicates:
+            - Path=/api/dm/**
+          filters:
+            - name: JwtAuthFilter
+
         # ── Message Service (WebSocket) ───────────────────────
         - id: message-service-ws
           uri: lb://message-service
