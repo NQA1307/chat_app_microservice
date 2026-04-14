@@ -5,7 +5,7 @@ spring:
   application:
     name: message-service
   datasource:
-    url: jdbc:postgresql://localhost:5434/message_db
+    url: jdbc:postgresql://localhost:5534/message_db
     username: postgres
     password: postgres
     driver-class-name: org.postgresql.Driver
@@ -18,7 +18,7 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
   rabbitmq:
     host: localhost
-    port: 5672
+    port: 5773
     username: guest
     password: guest
 
