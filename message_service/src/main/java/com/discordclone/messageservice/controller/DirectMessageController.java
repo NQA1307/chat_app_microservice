@@ -1,18 +1,21 @@
 package com.discordclone.messageservice.controller;
 
 import com.discordclone.common.dto.ApiResponse;
-import com.discordclone.messageservice.dto.ConversationResponse;
-import com.discordclone.messageservice.dto.CreateConversationRequest;
-import com.discordclone.messageservice.dto.DirectMessageResponse;
-import com.discordclone.messageservice.dto.SendDirectMessageRequest;
+import com.discordclone.common.exception.AppException;
+import com.discordclone.messageservice.dto.request.CreateConversationRequest;
+import com.discordclone.messageservice.dto.request.SendDirectMessageRequest;
+import com.discordclone.messageservice.dto.request.UpdateMessageRequest;
+import com.discordclone.messageservice.dto.response.ConversationResponse;
+import com.discordclone.messageservice.dto.response.DirectMessageResponse;
 import com.discordclone.messageservice.service.DirectMessageService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.messaging.handler.annotation.MessageMapping;
-import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequiredArgsConstructor
@@ -26,9 +29,9 @@ public class DirectMessageController {
      */
     @PostMapping("/api/dm/conversations")
     public ApiResponse<ConversationResponse> getOrCreateConversation(
-            @RequestBody CreateConversationRequest req,
+            @Valid @RequestBody CreateConversationRequest req,
             HttpServletRequest request) {
-        Long currentUserId = Long.parseLong(request.getHeader("X-User-Id"));
+        UUID currentUserId = UUID.fromString(request.getHeader("X-User-Id"));
         return ApiResponse.success(
                 directMessageService.getOrCreateConversation(currentUserId, req.getTargetUserId())
         );
@@ -40,7 +43,7 @@ public class DirectMessageController {
      */
     @GetMapping("/api/dm/conversations")
     public ApiResponse<List<ConversationResponse>> getConversations(HttpServletRequest request) {
-        Long currentUserId = Long.parseLong(request.getHeader("X-User-Id"));
+        UUID currentUserId = UUID.fromString(request.getHeader("X-User-Id"));
         return ApiResponse.success(directMessageService.getConversations(currentUserId));
     }
 
@@ -50,10 +53,12 @@ public class DirectMessageController {
      */
     @GetMapping("/api/dm/conversations/{conversationId}/messages")
     public ApiResponse<List<DirectMessageResponse>> getDirectMessages(
-            @PathVariable Long conversationId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "50") int size) {
-        return ApiResponse.success(directMessageService.getDirectMessages(conversationId, page, size));
+            @PathVariable("conversationId") Long conversationId,
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "50") int size,
+            HttpServletRequest request) {
+        UUID currentUserId = UUID.fromString(request.getHeader("X-User-Id"));
+        return ApiResponse.success(directMessageService.getDirectMessages(conversationId, currentUserId, page, size));
     }
 
     /**
@@ -62,21 +67,45 @@ public class DirectMessageController {
      */
     @PostMapping("/api/dm/conversations/{conversationId}/messages")
     public ApiResponse<DirectMessageResponse> sendDirectMessage(
-            @PathVariable Long conversationId,
-            @RequestBody SendDirectMessageRequest req,
+            @PathVariable("conversationId") Long conversationId,
+            @Valid @RequestBody SendDirectMessageRequest req,
             HttpServletRequest request) {
+        UUID currentUserId = UUID.fromString(request.getHeader("X-User-Id"));
+        String username = request.getHeader("X-User-Username");
         req.setConversationId(conversationId);
-        req.setSenderId(Long.parseLong(request.getHeader("X-User-Id")));
-        req.setSenderUsername(request.getHeader("X-User-Username"));
-        return ApiResponse.success(directMessageService.sendDirectMessage(req));
+        return ApiResponse.success(directMessageService.sendDirectMessage(req, currentUserId, username));
     }
 
-    /**
-     * STOMP: Client gửi tới /app/dm.send
-     * Server lưu DB và broadcast về /topic/dm/{conversationId}
-     */
-    @MessageMapping("/dm.send")
-    public void sendViaWebSocket(@Payload SendDirectMessageRequest req) {
-        directMessageService.sendDirectMessage(req);
+    //Cap nhat tin nhan
+    @PatchMapping("/api/dm/messages/{messageId}")
+    public ApiResponse<DirectMessageResponse> updateDirectMessage(
+        @PathVariable("messageId") String messageId,
+        @Valid @RequestBody UpdateMessageRequest req,
+        HttpServletRequest request) {
+    UUID currentUserId = getUserId(request);
+    return ApiResponse.success(
+            directMessageService.updateDirectMessage(messageId, currentUserId, req)
+    );
     }
+
+
+    //Xoa tin nhan
+    @DeleteMapping("/api/dm/messages/{messageId}")
+    public ApiResponse<DirectMessageResponse> deleteDirectMessage(
+        @PathVariable("messageId") String messageId,
+        HttpServletRequest request) {
+    UUID currentUserId = getUserId(request);
+    return ApiResponse.success(
+            directMessageService.deleteDirectMessage(messageId, currentUserId)
+    );
+    }
+
+    private UUID getUserId(HttpServletRequest request) {
+        String userId = request.getHeader("X-User-Id");
+        if (userId == null || userId.isBlank()) {
+            throw new AppException(HttpStatus.UNAUTHORIZED, "Missing authenticated user headers");
+        }
+        return UUID.fromString(userId);
+    }
+
 }

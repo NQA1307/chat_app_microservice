@@ -1,5 +1,5 @@
 server:
-  port: 8083
+  port: ${MESSAGE_SERVICE_PORT:8084}
 
 spring:
   application:
@@ -21,6 +21,19 @@ spring:
     port: 5773
     username: guest
     password: guest
+  data:
+    redis:
+      host: localhost
+      port: 6380
+
+permission:
+  cache:
+    ttl-seconds: 300
+
+app:
+  rabbitmq:
+    exchange: discord.events
+    message-sent-routing-key: message.sent
 
 eureka:
   client:
@@ -32,3 +45,7 @@ eureka:
 logging:
   level:
     com.discordclone: DEBUG
+
+clients:
+  server-service:
+    base-url: ${SERVER_SERVICE_BASE_URL:http://localhost:8082}

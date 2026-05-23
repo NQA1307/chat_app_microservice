@@ -1,0 +1,1 @@
+SELECT * FROM direct_messages

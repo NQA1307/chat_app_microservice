@@ -1,0 +1,48 @@
+server:
+  port: ${NOTIFICATION_SERVICE_PORT:8087}
+
+spring:
+  application:
+    name: notification-service
+  datasource:
+    url: jdbc:postgresql://localhost:5536/notification_db
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  rabbitmq:
+    host: localhost
+    port: 5773
+    username: guest
+    password: guest
+
+app:
+  rabbitmq:
+    exchange: discord.events
+
+
+    message-sent-routing-key: message.sent
+    message-sent-queue: notification.message-sent.queue
+
+    dm-sent-routing-key: dm.sent
+    dm-sent-queue: notification.dm-sent.queue
+
+    server-invite-sent-routing-key: server.invite.sent
+    server-invite-sent-queue: notification.server-invite-sent.queue
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+  instance:
+    prefer-ip-address: true
+
+logging:
+  level:
+    com.discordclone: DEBUG

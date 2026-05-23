@@ -11,6 +11,10 @@ import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 @EnableDiscoveryClient
 public class UserServiceApplication {
     public static void main(String[] args) {
+        System.setProperty(
+                "spring.config.additional-location",
+                "optional:file:application.yml,optional:file:user_service/application.yml"
+        );
         SpringApplication.run(UserServiceApplication.class, args);
     }
 }

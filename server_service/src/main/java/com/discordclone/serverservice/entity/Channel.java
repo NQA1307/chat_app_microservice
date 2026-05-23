@@ -1,5 +1,11 @@
 package com.discordclone.serverservice.entity;
 
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -16,6 +22,9 @@ public class Channel {
     private Long id;
 
     @Column(nullable = false)
+    private UUID creatorId;
+
+    @Column(nullable = false)
     private String name;
 
     @Enumerated(EnumType.STRING)
@@ -23,12 +32,18 @@ public class Channel {
     @Builder.Default
     private ChannelType type = ChannelType.TEXT;
 
+    @CreationTimestamp
+    private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    private LocalDateTime updatedAt;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "server_id", nullable = false)
     @ToString.Exclude
     private Server server;
 
     public enum ChannelType {
-        TEXT, VOICE
+        TEXT, VOICE, VIDEO
     }
 }

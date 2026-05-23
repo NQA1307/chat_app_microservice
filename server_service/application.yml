@@ -1,0 +1,39 @@
+server:
+  port: ${SERVER_SERVICE_PORT:8082}
+
+spring:
+  application:
+    name: server-service
+  datasource:
+    url: jdbc:postgresql://localhost:5533/server_db
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  rabbitmq:
+    host: localhost
+    port: 5773
+    username: guest
+    password: guest
+
+app:
+  rabbitmq:
+    exchange: discord.events
+    server-invite-sent-routing-key: server.invite.sent
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+  instance:
+    prefer-ip-address: true
+
+logging:
+  level:
+    com.discordclone: DEBUG

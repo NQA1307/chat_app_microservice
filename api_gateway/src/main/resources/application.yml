@@ -6,6 +6,20 @@ spring:
     name: api-gateway
   cloud:
     gateway:
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins: "http://localhost:3000"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+              - PATCH
+            allowedHeaders: "*"
+            allowCredentials: true
+      add-to-simple-url-handler-mapping: true
       routes:
         # ── User Service ──────────────────────────────────────
         - id: user-service-auth
@@ -19,7 +33,14 @@ spring:
           predicates:
             - Path=/api/users/**
           filters:
-            - name: JwtAuthFilter   # Custom filter validate JWT
+            - name: JwtAuth   # Custom filter validate JWT
+
+        - id: user-service-friends
+          uri: lb://user-service
+          predicates:
+            - Path=/api/friends/**
+          filters:
+            - name: JwtAuth
 
         # ── Server Service ────────────────────────────────────
         - id: server-service
@@ -27,15 +48,15 @@ spring:
           predicates:
             - Path=/api/servers/**
           filters:
-            - name: JwtAuthFilter
+            - name: JwtAuth
 
         # ── Message Service (REST) ─────────────────────────────
         - id: message-service-rest
           uri: lb://message-service
           predicates:
-            - Path=/api/messages/**
+            - Path=/api/messages,/api/messages/**
           filters:
-            - name: JwtAuthFilter
+            - name: JwtAuth
 
         # ── Message Service (Direct Message) ─────────────────
         - id: message-service-dm
@@ -43,13 +64,43 @@ spring:
           predicates:
             - Path=/api/dm/**
           filters:
-            - name: JwtAuthFilter
+            - name: JwtAuth
 
         # ── Message Service (WebSocket) ───────────────────────
         - id: message-service-ws
           uri: lb://message-service
           predicates:
             - Path=/ws/**
+
+        - id: media-service-files
+          uri: lb://media-service
+          predicates:
+            - Path=/api/media/files/**
+
+        - id: media-service
+          uri: lb://media-service
+          predicates:
+            - Path=/api/media/**
+          filters:
+            - name: JwtAuth
+
+        - id: notification-service
+          uri: lb://notification-service
+          predicates:
+            - Path=/api/notifications/**
+          filters:
+            - name: JwtAuth
+
+        - id: voice-service
+          uri: lb://voice-service
+          predicates:
+            - Path=/api/voice/**
+          filters:
+            - name: JwtAuth
+
+  # WebFlux codec buffer — cần đủ lớn để Gateway đọc multipart body
+  codec:
+    max-in-memory-size: 20MB
 
 jwt:
   secret: "404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970"

@@ -1,7 +1,9 @@
 package com.discordclone.serverservice.controller;
 
 import com.discordclone.common.dto.ApiResponse;
+import com.discordclone.common.enums.PermissionCode;
 import com.discordclone.serverservice.dto.*;
+import com.discordclone.serverservice.service.InviteService;
 import com.discordclone.serverservice.service.ServerService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -11,6 +13,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
+
+
+
 
 @RestController
 @RequestMapping("/api/servers")
@@ -18,16 +24,17 @@ import java.util.List;
 public class ServerController {
 
     private final ServerService serverService;
+    private final InviteService inviteService;
 
     /**
      * Đọc userId từ header X-User-Id được API Gateway forward sau khi validate JWT.
      */
-    private Long getUserId(HttpServletRequest request) {
+    private UUID getUserId(HttpServletRequest request) {
         String userId = request.getHeader("X-User-Id");
         if (userId == null) {
             throw new RuntimeException("Missing X-User-Id header");
         }
-        return Long.parseLong(userId);
+        return UUID.fromString(userId);
     }
 
     // POST /api/servers — Tạo server mới
@@ -50,16 +57,24 @@ public class ServerController {
     // GET /api/servers/{id} — Chi tiết 1 server
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<ServerResponse>> getServer(
-            @PathVariable Long id,
+            @PathVariable("id") Long id,
             HttpServletRequest request) {
         return ResponseEntity.ok(
                 ApiResponse.success(serverService.getServerById(id, getUserId(request))));
     }
 
     // POST /api/servers/{id}/channels — Tạo channel (chỉ owner)
+    @GetMapping("/{id}/members")
+    public ResponseEntity<ApiResponse<List<ServerMemberResponse>>> getServerMembers(
+            @PathVariable("id") Long id,
+            HttpServletRequest request) {
+        return ResponseEntity.ok(
+                ApiResponse.success(serverService.getServerMembers(id, getUserId(request))));
+    }
+
     @PostMapping("/{id}/channels")
     public ResponseEntity<ApiResponse<ChannelResponse>> createChannel(
-            @PathVariable Long id,
+            @PathVariable("id") Long id,
             @Valid @RequestBody CreateChannelRequest req,
             HttpServletRequest request) {
         ChannelResponse channel = serverService.createChannel(id, req, getUserId(request));
@@ -70,9 +85,141 @@ public class ServerController {
     // POST /api/servers/{id}/join — Join server
     @PostMapping("/{id}/join")
     public ResponseEntity<ApiResponse<Void>> joinServer(
-            @PathVariable Long id,
+            @PathVariable("id") Long id,
             HttpServletRequest request) {
         serverService.joinServer(id, getUserId(request));
         return ResponseEntity.ok(ApiResponse.success("Joined server successfully", null));
     }
+
+    //Gửi đi lời mời
+    @PostMapping("/{serverId}/invites")
+    public ResponseEntity<ApiResponse<InviteResponse>> sendServerInvite(
+        @PathVariable("serverId") Long serverId,
+        @RequestBody SendServerInviteRequest request,
+        HttpServletRequest httpRequest
+    ) {
+        InviteResponse inivite = inviteService.sendServerInvite(
+            serverId,
+            getUserId(httpRequest),
+             request);
+        
+             return ResponseEntity.status(HttpStatus.CREATED)
+             .body(ApiResponse.success("Invite sent", inivite));
+        }
+
+    //Lay danh sach loi moi
+    @GetMapping("/invites/incoming")
+    public ResponseEntity<ApiResponse<List<InviteResponse>>> getIncomingInvites(
+        HttpServletRequest request
+    ) {
+        List<InviteResponse> invites = inviteService.getIncomingInvites(getUserId(request));
+        return ResponseEntity.ok(ApiResponse.success(invites));
+    }
+    //Tu choi invite to server
+    @PostMapping("/invites/{inviteId}/decline")
+    public ResponseEntity<ApiResponse<Void>> declineInvite (
+        @PathVariable("inviteId") String inviteId,
+        HttpServletRequest request
+    ) {
+        inviteService.declineInvite(inviteId, getUserId(request));
+        return ResponseEntity.ok(ApiResponse.success("Invite declined", null));
+    }
+
+    //Chấp nhận lời mời tham gia server
+    @PostMapping("/invites/{inviteId}/accept")
+    public ResponseEntity<ApiResponse<ServerResponse>> acceptInvite(
+        @PathVariable("inviteId") String inviteId,
+        HttpServletRequest request
+) {
+    ServerResponse server = inviteService.acceptInvite(inviteId, getUserId(request));
+    return ResponseEntity.ok(ApiResponse.success("Invite accepted", server));
+}
+
+    //kiem tra quyen access vao 1 channel
+    @GetMapping("/channels/{channelId}/access")
+    public ResponseEntity<ApiResponse<Boolean>> canAccessChannel(
+        @PathVariable("channelId")  Long channelId,
+        @RequestParam("userId") UUID userId
+    ) {
+        return ResponseEntity.ok(
+            ApiResponse.success(serverService.canAccessChannel(channelId, userId))
+        );
+    }
+    
+    @GetMapping("/channels/{channelId}/permissions/{permission}")
+    public ResponseEntity<ApiResponse<Boolean>> hasChannelPermission(
+        @PathVariable("channelId") Long channelId,
+        @PathVariable("permission") PermissionCode permission,
+        @RequestParam("userId") UUID userId
+    ) {
+        return ResponseEntity.ok(
+            ApiResponse.success(serverService.hasChannelPermission(channelId, userId, permission))
+        );
+    }
+    //Owner phan quyen cho user trong server
+    @PatchMapping("/{serverId}/members/{memberId}/role")
+    public ResponseEntity<ApiResponse<ServerMemberResponse>> updateMemberRole(
+        @PathVariable("serverId") Long serverId,
+        @PathVariable("memberId") Long memberId,
+        @Valid @RequestBody UpdateMemberRoleRequest request,
+        HttpServletRequest httpRequest) {
+    ServerMemberResponse member = serverService.updateMemberRole(
+            serverId,
+            memberId,
+            getUserId(httpRequest),
+            request
+    );
+
+    return ResponseEntity.ok(ApiResponse.success("Member role updated", member));
+    }
+
+    @DeleteMapping("/{serverId}/members/{memberId}")
+    public ResponseEntity<ApiResponse<Void>> removeServerMember(
+        @PathVariable("serverId") Long serverId,
+        @PathVariable("memberId") Long memberId,
+        HttpServletRequest request) {
+    serverService.removeServerMember(serverId, memberId, getUserId(request));
+    return ResponseEntity.ok(ApiResponse.success("Member removed", null));
+    }
+
+    @PatchMapping("/{id}")
+    public ResponseEntity<ApiResponse<ServerResponse>> updateServer(
+        @PathVariable("id") Long id,
+        @Valid @RequestBody UpdateServerRequest req,
+        HttpServletRequest request) {
+    ServerResponse server = serverService.updateServer(id, getUserId(request), req);
+    return ResponseEntity.ok(ApiResponse.success("Server updated", server));
+}
+
+
+    //Xoa server
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Void>> deleteServer(
+        @PathVariable("id") Long id,
+        HttpServletRequest request) {
+    serverService.deleteServer(id, getUserId(request));
+    return ResponseEntity.ok(ApiResponse.success("Server deleted", null));
+}
+    //Cap nhat Channel
+    @PatchMapping("/{serverId}/channels/{channelId}")
+    public ResponseEntity<ApiResponse<ChannelResponse>> updateChannel(
+            @PathVariable Long serverId,
+            @PathVariable Long channelId,
+            @Valid @RequestBody UpdateChannelRequest req,
+            HttpServletRequest request) {
+        return ResponseEntity.ok(
+                ApiResponse.success("Channel updated",
+                        serverService.updateChannel(serverId, channelId, getUserId(request), req)));
+    }
+
+
+    //Xoa channel
+    @DeleteMapping("/{serverId}/channels/{channelId}")
+    public ResponseEntity<ApiResponse<Void>> deleteChannel(
+        @PathVariable Long serverId,
+        @PathVariable Long channelId,
+        HttpServletRequest request) {
+    serverService.deleteChannel(serverId, channelId, getUserId(request));
+    return ResponseEntity.ok(ApiResponse.success("Channel deleted", null));
+}
 }

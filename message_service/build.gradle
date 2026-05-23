@@ -11,5 +11,12 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-amqp'
     implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
+    implementation 'de.huxhorn.sulky:de.huxhorn.sulky.ulid:8.3.0'
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.5'    
     runtimeOnly 'org.postgresql:postgresql'
+}
+
+test {
+    systemProperty 'server.port', '0'
 }

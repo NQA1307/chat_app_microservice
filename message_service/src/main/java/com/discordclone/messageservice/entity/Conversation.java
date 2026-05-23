@@ -5,6 +5,7 @@ import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "conversations",
@@ -20,10 +21,10 @@ public class Conversation {
     private Long id;
 
     @Column(name = "participant_id1", nullable = false)
-    private Long participantId1;
+    private UUID participantId1;
 
     @Column(name = "participant_id2", nullable = false)
-    private Long participantId2;
+    private UUID participantId2;
 
     @CreationTimestamp
     private LocalDateTime createdAt;

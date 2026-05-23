@@ -1,0 +1,28 @@
+server:
+  port: ${VOICE_SERVICE_PORT:8086}
+
+spring:
+  application:
+    name: voice-service
+
+livekit:
+  url: ${LIVEKIT_URL:ws://localhost:7880}
+  api-key: ${LIVEKIT_API_KEY:devkey}
+  api-secret: ${LIVEKIT_API_SECRET:devsecretdevsecretdevsecretdev123}
+  token-ttl-minutes: ${LIVEKIT_TOKEN_TTL_MINUTES:60}
+  max-participants-per-room: ${LIVEKIT_MAX_PARTICIPANTS_PER_ROOM:10}
+
+clients:
+  server-service:
+    base-url: ${SERVER_SERVICE_BASE_URL:http://localhost:8082}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+  instance:
+    prefer-ip-address: true
+
+logging:
+  level:
+    com.discordclone: DEBUG

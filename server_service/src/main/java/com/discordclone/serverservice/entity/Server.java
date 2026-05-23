@@ -3,10 +3,12 @@ package com.discordclone.serverservice.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Entity
 @Table(name = "servers")
@@ -28,10 +30,16 @@ public class Server {
     private String imageUrl;
 
     @Column(nullable = false)
-    private Long ownerId;   // userId từ user-service, không dùng FK chéo service
+    private UUID ownerId;   // userId từ user-service, không dùng FK chéo service
+
+    @Column(nullable =  false, unique = true)
+    private String inviteCode;
 
     @CreationTimestamp
     private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    private LocalDateTime updatedAt;
 
     @OneToMany(mappedBy = "server", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default

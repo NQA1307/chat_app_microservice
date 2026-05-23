@@ -1,0 +1,53 @@
+server:
+  port: ${MESSAGE_SERVICE_PORT:8084}
+
+spring:
+  application:
+    name: message-service
+  datasource:
+    url: jdbc:postgresql://localhost:5534/message_db
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  rabbitmq:
+    host: localhost
+    port: 5773
+    username: guest
+    password: guest
+  data:
+    redis:
+      host: localhost
+      port: 6380
+
+permission:
+  cache:
+    ttl-seconds: 300
+
+app:
+  rabbitmq:
+    exchange: discord.events
+    message-sent-routing-key: message.sent
+    dm-sent-routing-key: dm.sent
+
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+  instance:
+    prefer-ip-address: true
+
+logging:
+  level:
+    com.discordclone: DEBUG
+
+clients:
+  server-service:
+    base-url: ${SERVER_SERVICE_BASE_URL:http://localhost:8082}

@@ -5,6 +5,7 @@ import lombok.Data;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Data
 @Builder
@@ -14,7 +15,7 @@ public class ServerResponse {
     private String name;
     private String description;
     private String imageUrl;
-    private Long ownerId;
+    private UUID ownerId;
     private int memberCount;
     private List<ChannelResponse> channels;
     private LocalDateTime createdAt;
