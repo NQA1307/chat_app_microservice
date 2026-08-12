@@ -1,0 +1,490 @@
+server:
+  port: 8080
+
+spring:
+  cloud:
+    gateway:
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOriginPatterns: ${CORS_ALLOWED_ORIGIN_PATTERNS}
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+              - PATCH
+            allowedHeaders: "*"
+            allowCredentials: true
+      add-to-simple-url-handler-mapping: true
+      routes:
+        - id: auth-login
+          uri: lb://user-service
+          predicates:
+            - Path=/api/auth/login
+          filters:
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@ipKeyResolver}"
+                redis-rate-limiter.replenishRate: 1
+                redis-rate-limiter.burstCapacity: 3
+                redis-rate-limiter.requestedTokens: 1
+
+        - id: auth-register
+          uri: lb://user-service
+          predicates:
+            - Path=/api/auth/register
+          filters:
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@ipKeyResolver}"
+                redis-rate-limiter.replenishRate: 1
+                redis-rate-limiter.burstCapacity: 2
+                redis-rate-limiter.requestedTokens: 1
+
+        - id: auth-email-code
+          uri: lb://user-service
+          predicates:
+            - Path=/api/auth/email-verification/send,/api/auth/password-reset/request
+          filters:
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@ipKeyResolver}"
+                redis-rate-limiter.replenishRate: 1
+                redis-rate-limiter.burstCapacity: 2
+                redis-rate-limiter.requestedTokens: 1
+
+        - id: auth-verify-reset
+          uri: lb://user-service
+          predicates:
+            - Path=/api/auth/email-verification/verify,/api/auth/password-reset/verify,/api/auth/password-reset/confirm
+          filters:
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@ipKeyResolver}"
+                redis-rate-limiter.replenishRate: 1
+                redis-rate-limiter.burstCapacity: 5
+                redis-rate-limiter.requestedTokens: 1
+
+        - id: auth-refresh-logout
+          uri: lb://user-service
+          predicates:
+            - Path=/api/auth/refresh,/api/auth/logout
+          filters:
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@ipKeyResolver}"
+                redis-rate-limiter.replenishRate: 2
+                redis-rate-limiter.burstCapacity: 10
+                redis-rate-limiter.requestedTokens: 1
+
+        - id: user-service-admin
+          uri: lb://user-service
+          predicates:
+            - Path=/api/admin/**
+          filters:
+            - name: JwtAuth
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@userKeyResolver}"
+                redis-rate-limiter.replenishRate: 5
+                redis-rate-limiter.burstCapacity: 20
+                redis-rate-limiter.requestedTokens: 1
+
+        - id: users-search
+          uri: lb://user-service
+          predicates:
+            - Path=/api/users/search
+            - Method=GET
+          filters:
+            - name: JwtAuth
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@userKeyResolver}"
+                redis-rate-limiter.replenishRate: 2
+                redis-rate-limiter.burstCapacity: 10
+                redis-rate-limiter.requestedTokens: 1
+
+        - id: users-profile-write
+          uri: lb://user-service
+          predicates:
+            - Path=/api/users/me,/api/users/avatar
+            - Method=PATCH,POST
+          filters:
+            - name: JwtAuth
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@userKeyResolver}"
+                redis-rate-limiter.replenishRate: 1
+                redis-rate-limiter.burstCapacity: 5
+                redis-rate-limiter.requestedTokens: 1
+
+        - id: users-read
+          uri: lb://user-service
+          predicates:
+            - Path=/api/users/**
+          filters:
+            - name: JwtAuth
+
+        - id: friends-relationship
+          uri: lb://user-service
+          predicates:
+            - Path=/api/friends/*/relationship
+            - Method=GET
+          filters:
+            - name: JwtAuth
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@userKeyResolver}"
+                redis-rate-limiter.replenishRate: 3
+                redis-rate-limiter.burstCapacity: 10
+                redis-rate-limiter.requestedTokens: 1
+
+        - id: friends-blocked-list
+          uri: lb://user-service
+          predicates:
+            - Path=/api/friends/blocked
+            - Method=GET
+          filters:
+            - name: JwtAuth
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@userKeyResolver}"
+                redis-rate-limiter.replenishRate: 2
+                redis-rate-limiter.burstCapacity: 10
+                redis-rate-limiter.requestedTokens: 1
+
+        - id: friends-block
+          uri: lb://user-service
+          predicates:
+            - Path=/api/friends/*/block
+            - Method=POST,DELETE
+          filters:
+            - name: JwtAuth
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@userKeyResolver}"
+                redis-rate-limiter.replenishRate: 1
+                redis-rate-limiter.burstCapacity: 3
+                redis-rate-limiter.requestedTokens: 1
+
+        - id: friends-list-read
+          uri: lb://user-service
+          predicates:
+            - Path=/api/friends
+            - Method=GET
+          filters:
+            - name: JwtAuth
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@userKeyResolver}"
+                redis-rate-limiter.replenishRate: 3
+                redis-rate-limiter.burstCapacity: 20
+                redis-rate-limiter.requestedTokens: 1
+
+        - id: friends-requests-read
+          uri: lb://user-service
+          predicates:
+            - Path=/api/friends/requests/**
+            - Method=GET
+          filters:
+            - name: JwtAuth
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@userKeyResolver}"
+                redis-rate-limiter.replenishRate: 3
+                redis-rate-limiter.burstCapacity: 20
+                redis-rate-limiter.requestedTokens: 1
+
+        - id: friends-write
+          uri: lb://user-service
+          predicates:
+            - Path=/api/friends/requests/**,/api/friends/*
+            - Method=POST,DELETE
+          filters:
+            - name: JwtAuth
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@userKeyResolver}"
+                redis-rate-limiter.replenishRate: 1
+                redis-rate-limiter.burstCapacity: 5
+                redis-rate-limiter.requestedTokens: 1
+
+        - id: message-send
+          uri: lb://message-service
+          predicates:
+            - Path=/api/messages
+            - Method=POST
+          filters:
+            - name: JwtAuth
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@userKeyResolver}"
+                redis-rate-limiter.replenishRate: 3
+                redis-rate-limiter.burstCapacity: 10
+                redis-rate-limiter.requestedTokens: 1
+
+        - id: message-read
+          uri: lb://message-service
+          predicates:
+            - Path=/api/messages/**
+            - Method=GET
+          filters:
+            - name: JwtAuth
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@userKeyResolver}"
+                redis-rate-limiter.replenishRate: 10
+                redis-rate-limiter.burstCapacity: 50
+                redis-rate-limiter.requestedTokens: 1
+
+        - id: message-write
+          uri: lb://message-service
+          predicates:
+            - Path=/api/messages/**
+            - Method=PUT,PATCH,DELETE
+          filters:
+            - name: JwtAuth
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@userKeyResolver}"
+                redis-rate-limiter.replenishRate: 3
+                redis-rate-limiter.burstCapacity: 10
+                redis-rate-limiter.requestedTokens: 1
+
+        - id: message-service-rest-fallback
+          uri: lb://message-service
+          predicates:
+            - Path=/api/messages,/api/messages/**
+          filters:
+            - name: JwtAuth
+
+        - id: dm-read
+          uri: lb://message-service
+          predicates:
+            - Path=/api/dm/**
+            - Method=GET
+          filters:
+            - name: JwtAuth
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@userKeyResolver}"
+                redis-rate-limiter.replenishRate: 10
+                redis-rate-limiter.burstCapacity: 50
+                redis-rate-limiter.requestedTokens: 1
+
+        - id: dm-write
+          uri: lb://message-service
+          predicates:
+            - Path=/api/dm/**
+            - Method=POST,PUT,PATCH,DELETE
+          filters:
+            - name: JwtAuth
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@userKeyResolver}"
+                redis-rate-limiter.replenishRate: 3
+                redis-rate-limiter.burstCapacity: 10
+                redis-rate-limiter.requestedTokens: 1
+
+        - id: message-service-dm-fallback
+          uri: lb://message-service
+          predicates:
+            - Path=/api/dm/**
+          filters:
+            - name: JwtAuth
+
+        - id: message-service-presence
+          uri: lb://message-service
+          predicates:
+            - Path=/api/presence/**
+          filters:
+            - name: JwtAuth
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@userKeyResolver}"
+                redis-rate-limiter.replenishRate: 2
+                redis-rate-limiter.burstCapacity: 10
+                redis-rate-limiter.requestedTokens: 1
+
+        - id: message-service-ws
+          uri: lb:ws://message-service
+          predicates:
+            - Path=/ws,/ws/**,/ws-native,/ws-native/**
+          filters:
+            - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin, RETAIN_FIRST
+
+        - id: media-service-files
+          uri: lb://media-service
+          predicates:
+            - Path=/api/media/files/**
+
+        - id: media-upload
+          uri: lb://media-service
+          predicates:
+            - Path=/api/media/**
+            - Method=POST
+          filters:
+            - name: JwtAuth
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@userKeyResolver}"
+                redis-rate-limiter.replenishRate: 1
+                redis-rate-limiter.burstCapacity: 3
+                redis-rate-limiter.requestedTokens: 1
+
+        - id: media-read
+          uri: lb://media-service
+          predicates:
+            - Path=/api/media/**
+            - Method=GET
+          filters:
+            - name: JwtAuth
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@userKeyResolver}"
+                redis-rate-limiter.replenishRate: 10
+                redis-rate-limiter.burstCapacity: 50
+                redis-rate-limiter.requestedTokens: 1
+
+        - id: media-service-fallback
+          uri: lb://media-service
+          predicates:
+            - Path=/api/media/**
+          filters:
+            - name: JwtAuth
+
+        - id: server-leave
+          uri: lb://server-service
+          predicates:
+            - Path=/api/servers/*/leave
+            - Method=DELETE
+          filters:
+            - name: JwtAuth
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@userKeyResolver}"
+                redis-rate-limiter.replenishRate: 1
+                redis-rate-limiter.burstCapacity: 3
+                redis-rate-limiter.requestedTokens: 1
+
+        - id: server-write
+          uri: lb://server-service
+          predicates:
+            - Path=/api/servers,/api/servers/*/channels,/api/servers/*/join,/api/servers/*/invites,/api/servers/invites/*/accept,/api/servers/invites/*/decline
+            - Method=POST,PATCH,DELETE
+          filters:
+            - name: JwtAuth
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@userKeyResolver}"
+                redis-rate-limiter.replenishRate: 1
+                redis-rate-limiter.burstCapacity: 10
+                redis-rate-limiter.requestedTokens: 1
+
+        - id: server-moderation
+          uri: lb://server-service
+          predicates:
+            - Path=/api/servers/*/bans,/api/servers/*/mutes,/api/servers/*/members/*,/api/servers/*/members/*/kick
+            - Method=POST,PATCH,DELETE
+          filters:
+            - name: JwtAuth
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@userKeyResolver}"
+                redis-rate-limiter.replenishRate: 1
+                redis-rate-limiter.burstCapacity: 5
+                redis-rate-limiter.requestedTokens: 1
+
+        - id: server-read
+          uri: lb://server-service
+          predicates:
+            - Path=/api/servers/**
+            - Method=GET
+          filters:
+            - name: JwtAuth
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@userKeyResolver}"
+                redis-rate-limiter.replenishRate: 10
+                redis-rate-limiter.burstCapacity: 50
+                redis-rate-limiter.requestedTokens: 1
+
+        - id: server-service-fallback
+          uri: lb://server-service
+          predicates:
+            - Path=/api/servers/**
+          filters:
+            - name: JwtAuth
+
+        - id: notification-read
+          uri: lb://notification-service
+          predicates:
+            - Path=/api/notifications/**
+            - Method=GET
+          filters:
+            - name: JwtAuth
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@userKeyResolver}"
+                redis-rate-limiter.replenishRate: 5
+                redis-rate-limiter.burstCapacity: 30
+                redis-rate-limiter.requestedTokens: 1
+
+        - id: notification-write
+          uri: lb://notification-service
+          predicates:
+            - Path=/api/notifications/**
+            - Method=POST,PATCH,DELETE
+          filters:
+            - name: JwtAuth
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@userKeyResolver}"
+                redis-rate-limiter.replenishRate: 1
+                redis-rate-limiter.burstCapacity: 10
+                redis-rate-limiter.requestedTokens: 1
+
+        - id: notification-service-fallback
+          uri: lb://notification-service
+          predicates:
+            - Path=/api/notifications/**
+          filters:
+            - name: JwtAuth
+
+        - id: voice-token
+          uri: lb://voice-service
+          predicates:
+            - Path=/api/voice/channels/*/token
+            - Method=POST
+          filters:
+            - name: JwtAuth
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@userKeyResolver}"
+                redis-rate-limiter.replenishRate: 1
+                redis-rate-limiter.burstCapacity: 5
+                redis-rate-limiter.requestedTokens: 1
+
+        - id: voice-service-fallback
+          uri: lb://voice-service
+          predicates:
+            - Path=/api/voice/**
+          filters:
+            - name: JwtAuth
+
+  codec:
+    max-in-memory-size: 50MB
+
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+
+jwt:
+  secret: ${JWT_SECRET}
+  issuer: ${JWT_ISSUER}
+
+internal:
+  service-secret: ${INTERNAL_SERVICE_SECRET}

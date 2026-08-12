@@ -1,0 +1,6 @@
+CREATE DATABASE user_db;
+CREATE DATABASE server_db;
+CREATE DATABASE message_db;
+CREATE DATABASE media_db;
+CREATE DATABASE notification_db;
+CREATE DATABASE voice_db;

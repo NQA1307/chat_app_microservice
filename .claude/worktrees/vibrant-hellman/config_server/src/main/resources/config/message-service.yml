@@ -1,0 +1,86 @@
+server:
+  port: ${MESSAGE_SERVICE_PORT}
+
+jwt:
+  secret: ${JWT_SECRET}
+  issuer: ${JWT_ISSUER}
+
+spring:
+  datasource:
+    url: ${MESSAGE_DB_URL}
+    username: ${POSTGRES_USERNAME}
+    password: ${POSTGRES_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 0
+  rabbitmq:
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT}
+    username: ${RABBITMQ_USERNAME}
+    password: ${RABBITMQ_PASSWORD}
+    listener:
+      simple:
+        concurrency: 2
+        max-concurrency: 8
+        prefetch: 20
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+
+rabbitmq:
+  stomp:
+    host: ${RABBITMQ_STOMP_HOST}
+    port: ${RABBITMQ_STOMP_PORT}
+    login: ${RABBITMQ_STOMP_LOGIN}
+    passcode: ${RABBITMQ_STOMP_PASSCODE}
+
+permission:
+  cache:
+    ttl-seconds: 300
+
+app:
+  rabbitmq:
+    exchange: discord.events
+    message-sent-routing-key: message.sent
+    dm-sent-routing-key: dm.sent
+    message-reaction-updated-routing-key: message.reaction.updated
+
+    notification-created-routing-key: notification.created
+    notification-created-queue: notification.created.queue
+
+    notification-read-routing-key: notification.read
+    notification-read-queue: notification.read.queue
+  crypto:
+    message:
+      active-key-id: ${MESSAGE_ENCRYPTION_ACTIVE_KEY_ID}
+      keys:
+        msg-key-2026-06: ${MESSAGE_ENCRYPTION_KEYS_MSG_KEY_2026_06}
+        msg-key-2026-09: ${MESSAGE_ENCRYPTION_KEYS_MSG_KEY_2026_09}
+resilience4j:
+  circuitbreaker:
+    instances:
+      serverService:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 3
+  retry:
+    instances:
+      serverService:
+        maxAttempts: 3
+        waitDuration: 2s
+
+clients:
+  server-service:
+    base-url: ${SERVER_SERVICE_BASE_URL}
+    connect-timeout: 2s
+    read-timeout: 3s
+  user-service:
+    base-url: ${USER_SERVICE_BASE_URL}
+    connect-timeout: 2s
+    read-timeout: 3s

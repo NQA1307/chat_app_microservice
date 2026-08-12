@@ -1,0 +1,167 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres-dev
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5532:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./scripts/postgres/init-multiple-dbs.sql:/docker-entrypoint-initdb.d/init-multiple-dbs.sql:ro
+    networks:
+      - discord-net
+
+  # postgres-server:
+  #   image: postgres:16-alpine
+  #   container_name: postgres-server-dev
+  #   environment:
+  #     POSTGRES_DB: server_db
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_PASSWORD: postgres
+  #   ports:
+  #     - "5533:5432"
+  #   volumes:
+  #     - postgres-server-data:/var/lib/postgresql/data
+  #   networks:
+  #     - discord-net
+
+  # postgres-message:
+  #   image: postgres:16-alpine
+  #   container_name: postgres-message-dev
+  #   environment:
+  #     POSTGRES_DB: message_db
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_PASSWORD: postgres
+  #   ports:
+  #     - "5534:5432"
+  #   volumes:
+  #     - postgres-message-data:/var/lib/postgresql/data
+  #   networks:
+  #     - discord-net
+
+  # postgres-media:
+  #   image: postgres:16-alpine
+  #   container_name: postgres-media-dev
+  #   environment:
+  #     POSTGRES_DB: media_db
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_PASSWORD: postgres
+  #   ports:
+  #     - "5535:5432"
+  #   volumes:
+  #     - postgres-media-data:/var/lib/postgresql/data
+  #   networks:
+  #     - discord-net
+
+  # notification-db:
+  #   image: postgres:16-alpine
+  #   container_name: postgres-notification-dev
+  #   environment:
+  #     POSTGRES_DB: notification_db
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_PASSWORD: postgres
+  #   ports:
+  #     - "5536:5432"
+  #   volumes:
+  #     - postgres-notification-data:/var/lib/postgresql/data
+  #   networks:
+  #     - discord-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis-dev
+    ports:
+      - "6380:6379"
+    networks:
+      - discord-net
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: rabbitmq-dev
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+      RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: "-rabbitmq_identity_allow_remote_guest_context true"
+    ports:
+      - "5773:5672"
+      - "15773:15672"
+      - "61613:61613"
+    networks:
+      - discord-net
+  meilisearch:
+    image: getmeili/meilisearch:v1.26.0
+    container_name: meilisearch-dev
+    environment:
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
+      MEILI_ENV: development
+    ports:
+      - "7700:7700"
+    volumes:
+      - meili-data:/meili_data
+    networks:
+      - discord-net
+  livekit:
+    image: livekit/livekit-server:latest
+    container_name: discord_clone_livekit
+    command: --config /etc/livekit.yaml
+    ports:
+      - "7880:7880"
+      - "7881:7881"
+      - "7882:7882/udp"
+    volumes:
+      - ./livekit.yaml:/etc/livekit.yaml:ro
+    networks:
+      - discord-net
+  # postgres-voice:
+  #   image: postgres:16-alpine
+  #   container_name: postgres-voice-dev
+  #   environment:
+  #     POSTGRES_DB: voice_db
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_PASSWORD: postgres
+  #   ports:
+  #     - "5537:5432"
+  #   volumes:
+  #     - postgres-voice-data:/var/lib/postgresql/data
+  #   networks:
+  #     - discord-net
+  prometheus:
+    image: quay.io/prometheus/prometheus:v2.55.1
+    container_name: prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - discord-net
+
+  grafana:
+    image: mirror.gcr.io/grafana/grafana:11.3.0
+    container_name: grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana-data:/var/lib/grafana
+    networks:
+      - discord-net
+
+volumes:
+  # postgres-user-data:
+  # postgres-server-data:
+  # postgres-message-data:
+  # postgres-media-data:
+  # postgres-notification-data:
+  meili-data:
+  # postgres-voice-data:
+  grafana-data:
+  postgres-data:
+
+networks:
+  discord-net:
+    driver: bridge

@@ -1,0 +1,12 @@
+rootProject.name = 'discord-clone'
+
+include 'common'
+include 'config_server'
+include 'eureka_server'
+include 'api_gateway'
+include 'user_service'
+include 'server_service'
+include 'message_service'
+include 'media_service'
+include 'notification_service'
+include 'voice_service'

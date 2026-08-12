@@ -1,0 +1,74 @@
+server:
+  port: ${NOTIFICATION_SERVICE_PORT}
+
+spring:
+  datasource:
+    url: ${NOTIFICATION_DB_URL}
+    username: ${POSTGRES_USERNAME}
+    password: ${POSTGRES_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 0
+  rabbitmq:
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT}
+    username: ${RABBITMQ_USERNAME}
+    password: ${RABBITMQ_PASSWORD}
+    listener:
+      simple:
+        concurrency: 2
+        max-concurrency: 8
+        prefetch: 20
+  mail:
+    host: ${MAIL_HOST}
+    port: ${MAIL_PORT}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+      mail.smtp.connectiontimeout: 5000
+      mail.smtp.timeout: 10000
+      mail.smtp.writetimeout: 10000
+
+management:
+  endpoint:
+    health:
+      show-components: always
+      probes:
+        enabled: true
+  health:
+    mail:
+      enabled: false
+
+app:
+  rabbitmq:
+    exchange: discord.events
+
+    message-sent-routing-key: message.sent
+    message-sent-queue: notification.message-sent.queue
+
+    dm-sent-routing-key: dm.sent
+    dm-sent-queue: notification.dm-sent.queue
+
+    server-invite-sent-routing-key: server.invite.sent
+    server-invite-sent-queue: notification.server-invite-sent.queue
+
+    notification-created-routing-key: notification.created
+    notification-created-queue: notification.created.queue
+
+    auth-email-requested-routing-key: auth.email.requested
+    auth-email-requested-queue: notification.auth-email-requested.queue
+
+    friend-request-routing-key: friend.request.*
+    friend-request-queue: notification.friend-request.queue
+
+    server-member-routing-key: server.member.*
+    server-member-queue: notification.server-member.queue
+
+    user-blocked-routing-key: user.blocked
+    user-blocked-queue: notification.user-blocked.queue
+
+    notification-read-routing-key: notification.read

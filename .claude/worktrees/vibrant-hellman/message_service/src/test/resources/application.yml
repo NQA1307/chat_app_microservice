@@ -1,0 +1,38 @@
+spring:
+  cloud:
+    config:
+      enabled: false
+  config:
+    import: optional:classpath:/test-only.yml
+  datasource:
+    url: jdbc:h2:mem:message_service_test;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+  flyway:
+    enabled: false
+
+eureka:
+  client:
+    enabled: false
+
+jwt:
+  secret: test-secret-key-test-secret-key-test-secret-key
+  issuer: discord-clone
+
+internal:
+  service-secret: test-internal-secret
+
+rabbitmq:
+  stomp:
+    host: 127.0.0.1
+    port: 61613
+    login: guest
+    passcode: guest

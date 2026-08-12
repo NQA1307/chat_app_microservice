@@ -1,0 +1,30 @@
+server:
+  port: ${VOICE_SERVICE_PORT}
+
+spring:
+  datasource:
+    url: ${VOICE_DB_URL}
+    username: ${POSTGRES_USERNAME}
+    password: ${POSTGRES_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: ${JPA_DDL_AUTO}
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 0
+
+livekit:
+  url: ${LIVEKIT_URL}
+  api-key: ${LIVEKIT_API_KEY}
+  api-secret: ${LIVEKIT_API_SECRET}
+  token-ttl-minutes: ${LIVEKIT_TOKEN_TTL_MINUTES}
+  max-participants-per-room: ${LIVEKIT_MAX_PARTICIPANTS_PER_ROOM}
+
+clients:
+  server-service:
+    base-url: ${SERVER_SERVICE_BASE_URL}

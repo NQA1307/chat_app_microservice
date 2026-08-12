@@ -1,0 +1,77 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.4.3' apply false
+    id 'io.spring.dependency-management' version '1.1.7' apply false
+}
+
+ext {
+    set('springCloudVersion', '2024.0.0')
+
+    loadDotEnv = {
+        def envFile = rootProject.file('.env')
+        if (!envFile.exists()) {
+            return [:]
+        }
+
+        return envFile.readLines()
+                .collect { it.trim() }
+                .findAll { it && !it.startsWith('#') && it.contains('=') }
+                .collectEntries { line ->
+                    def separatorIndex = line.indexOf('=')
+                    def key = line.substring(0, separatorIndex).trim()
+                    def value = line.substring(separatorIndex + 1).trim()
+
+                    if ((value.startsWith('"') && value.endsWith('"')) ||
+                            (value.startsWith("'") && value.endsWith("'"))) {
+                        value = value.substring(1, value.length() - 1)
+                    }
+
+                    [(key): value]
+                }
+    }
+}
+
+subprojects {
+    apply plugin: 'java'
+    apply plugin: 'io.spring.dependency-management'
+    apply plugin: 'eclipse'
+
+    group = 'com.discordclone'
+    version = '1.0.0'
+
+    java {
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
+    }
+
+    tasks.withType(JavaCompile).configureEach {
+        options.compilerArgs += '-parameters'
+    }
+
+    repositories {
+        mavenCentral()
+    }
+
+    dependencyManagement {
+        imports {
+            mavenBom "org.springframework.boot:spring-boot-dependencies:3.4.3"
+            mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
+        }
+    }
+
+    dependencies {
+        compileOnly 'org.projectlombok:lombok:1.18.38'
+        annotationProcessor 'org.projectlombok:lombok:1.18.38'
+        testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    }
+
+    test {
+        useJUnitPlatform()
+    }
+
+    plugins.withId('org.springframework.boot') {
+        tasks.named('bootRun') {
+            environment rootProject.ext.loadDotEnv()
+        }
+    }
+}

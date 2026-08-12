@@ -1,0 +1,4 @@
+ALTER TABLE users 
+ADD COLUMN bio TEXT,
+ADD COLUMN banner_color VARCHAR(7),
+ADD COLUMN custom_status VARCHAR(255);

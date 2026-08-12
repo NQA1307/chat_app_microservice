@@ -1,0 +1,17 @@
+global:
+  scrape_interval: 5s
+
+scrape_configs:
+  - job_name: "discord-clone-services"
+    metrics_path: "/actuator/prometheus"
+    static_configs:
+      - targets:
+          - "host.docker.internal:8080" # api_gateway
+          - "host.docker.internal:8081" # user_service
+          - "host.docker.internal:8082" # server_service
+          - "host.docker.internal:8085" # media_service
+          - "host.docker.internal:8086" # voice_service
+          - "host.docker.internal:8084" # message_service
+          - "host.docker.internal:8087" # notification_service
+          - "host.docker.internal:8888" # config_server
+          - "host.docker.internal:8761" # eureka_server

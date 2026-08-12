@@ -1,0 +1,56 @@
+server:
+  port: ${USER_SERVICE_PORT}
+
+spring:
+  datasource:
+    url: ${USER_DB_URL}
+    username: ${POSTGRES_USERNAME}
+    password: ${POSTGRES_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 0
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+  rabbitmq:
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT}
+    username: ${RABBITMQ_USERNAME}
+    password: ${RABBITMQ_PASSWORD}
+
+jwt:
+  secret: ${JWT_SECRET}
+  issuer: ${JWT_ISSUER}
+  access-expiration: 900000
+  refresh-expiration: 604800000
+
+meilisearch:
+  host: ${MEILISEARCH_HOST}
+  master-key: ${MEILI_MASTER_KEY}
+  index-name: ${MEILISEARCH_USER_INDEX}
+
+cloudinary:
+  cloud-name: ${CLOUDINARY_CLOUD_NAME}
+  api-key: ${CLOUDINARY_API_KEY}
+  api-secret: ${CLOUDINARY_API_SECRET}
+
+app:
+  registration:
+    pending-ttl-minutes: 30
+  otp:
+    secret: ${OTP_SECRET}
+    ttl-minutes: 10
+    max-attempts: 5
+    resend-cooldown-seconds: 60
+  rabbitmq:
+    exchange: discord.events
+    auth-email-requested-routing-key: auth.email.requested
+    friend-request-sent-routing-key: friend.request.sent
+    friend-request-accepted-routing-key: friend.request.accepted

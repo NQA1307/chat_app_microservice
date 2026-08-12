@@ -1,0 +1,27 @@
+server:
+  port: ${SERVER_SERVICE_PORT}
+
+spring:
+  datasource:
+    url: ${SERVER_DB_URL}
+    username: ${POSTGRES_USERNAME}
+    password: ${POSTGRES_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 0
+  rabbitmq:
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT}
+    username: ${RABBITMQ_USERNAME}
+    password: ${RABBITMQ_PASSWORD}
+
+app:
+  rabbitmq:
+    exchange: discord.events
+    server-invite-sent-routing-key: server.invite.sent
+
+clients:
+  user-service:
+    base-url: ${USER_SERVICE_BASE_URL}

@@ -1,0 +1,28 @@
+    @Transactional
+    public UserResponse updateProfile(String email, UpdateProfileRequest request) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "User not found"));
+
+        if (request.getDisplayName() != null) {
+            String displayName = request.getDisplayName().trim();
+            user.setDisplayName(displayName.isBlank() ? user.getUsername() : displayName);
+        }
+
+        if (request.getBio() != null) {
+            user.setBio(request.getBio());
+        }
+
+        if (request.getBannerColor() != null) {
+            user.setBannerColor(request.getBannerColor());
+        }
+
+        if (request.getCustomStatus() != null) {
+            user.setCustomStatus(request.getCustomStatus());
+        }
+
+        user = userRepository.save(user);
+        meiliSearchService.indexNewUser(user);
+
+        return toResponse(user);
+    }
+}

@@ -1,0 +1,370 @@
+x-common-env: &common-env
+  CONFIG_SERVER_PORT: 8888
+  EUREKA_DEFAULT_ZONE: http://eureka-server:8761/eureka
+  SPRING_CONFIG_IMPORT: configserver:http://config-server:8888
+  POSTGRES_HOST: postgres
+  POSTGRES_PORT: 5432
+  POSTGRES_USERNAME: ${POSTGRES_USERNAME:-postgres}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+  REDIS_HOST: redis
+  REDIS_PORT: 6379
+  RABBITMQ_HOST: rabbitmq
+  RABBITMQ_PORT: 5672
+  RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-guest}
+  RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-guest}
+  RABBITMQ_STOMP_HOST: rabbitmq
+  RABBITMQ_STOMP_PORT: 61613
+  RABBITMQ_STOMP_LOGIN: ${RABBITMQ_STOMP_LOGIN:-guest}
+  RABBITMQ_STOMP_PASSCODE: ${RABBITMQ_STOMP_PASSCODE:-guest}
+  JWT_SECRET: ${JWT_SECRET}
+  JWT_ISSUER: ${JWT_ISSUER:-discord-clone}
+  INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET}
+  OTP_SECRET: ${OTP_SECRET}
+  JPA_DDL_AUTO: validate
+  JPA_SHOW_SQL: "false"
+  MANAGEMENT_HEALTH_SHOW_DETAILS: never
+  HIKARI_MAX_POOL_SIZE: 20
+  HIKARI_MIN_IDLE: 5
+  USER_DB_URL: jdbc:postgresql://postgres:5432/user_db
+  SERVER_DB_URL: jdbc:postgresql://postgres:5432/server_db
+  MESSAGE_DB_URL: jdbc:postgresql://postgres:5432/message_db
+  MEDIA_DB_URL: jdbc:postgresql://postgres:5432/media_db
+  VOICE_DB_URL: jdbc:postgresql://postgres:5432/voice_db
+  NOTIFICATION_DB_URL: jdbc:postgresql://postgres:5432/notification_db
+  USER_SERVICE_BASE_URL: http://user-service:8081
+  SERVER_SERVICE_BASE_URL: http://server-service:8082
+  MEDIA_PUBLIC_BASE_URL: ${MEDIA_PUBLIC_BASE_URL:-http://localhost:8080}
+  MEILISEARCH_HOST: http://meilisearch:7700
+  MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
+  MEILISEARCH_USER_INDEX: ${MEILISEARCH_USER_INDEX:-users}
+  CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
+  CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
+  CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
+  MAIL_HOST: ${MAIL_HOST}
+  MAIL_PORT: ${MAIL_PORT:-587}
+  MAIL_USERNAME: ${MAIL_USERNAME}
+  MAIL_PASSWORD: ${MAIL_PASSWORD}
+  LIVEKIT_URL: ${LIVEKIT_URL}
+  LIVEKIT_API_KEY: ${LIVEKIT_API_KEY}
+  LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET}
+  LIVEKIT_TOKEN_TTL_MINUTES: ${LIVEKIT_TOKEN_TTL_MINUTES:-60}
+  LIVEKIT_MAX_PARTICIPANTS_PER_ROOM: ${LIVEKIT_MAX_PARTICIPANTS_PER_ROOM:-10}
+  MESSAGE_ENCRYPTION_ACTIVE_KEY_ID: ${MESSAGE_ENCRYPTION_ACTIVE_KEY_ID}
+  MESSAGE_ENCRYPTION_KEYS_MSG_KEY_2026_06: ${MESSAGE_ENCRYPTION_KEYS_MSG_KEY_2026_06}
+  MESSAGE_ENCRYPTION_KEYS_MSG_KEY_2026_09: ${MESSAGE_ENCRYPTION_KEYS_MSG_KEY_2026_09}
+  CORS_ALLOWED_ORIGIN_PATTERNS: ${CORS_ALLOWED_ORIGIN_PATTERNS:-http://localhost:3000}
+
+x-restart: &restart-policy
+  restart_policy:
+    condition: on-failure
+    delay: 5s
+    max_attempts: 3
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: ${POSTGRES_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./scripts/postgres/init-multiple-dbs.sql:/docker-entrypoint-initdb.d/init-multiple-dbs.sql:ro
+    networks:
+      - discord-swarm-net
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      <<: *restart-policy
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    networks:
+      - discord-swarm-net
+    deploy:
+      replicas: 1
+      <<: *restart-policy
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    command: sh -c "rabbitmq-plugins enable --offline rabbitmq_stomp && rabbitmq-server"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
+      RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: "-rabbitmq_identity_allow_remote_guest_context true"
+    ports:
+      - "15773:15672"
+      - "61613:61613"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    networks:
+      - discord-swarm-net
+    deploy:
+      replicas: 1
+      <<: *restart-policy
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.26.0
+    environment:
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
+      MEILI_ENV: production
+    volumes:
+      - meili-data:/meili_data
+    networks:
+      - discord-swarm-net
+    deploy:
+      replicas: 1
+      <<: *restart-policy
+
+  config-server:
+    image: discord-clone/config-server:latest
+    build:
+      context: .
+      dockerfile: config_server/Dockerfile
+    environment:
+      <<: *common-env
+    networks:
+      - discord-swarm-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8888/actuator/health >/dev/null"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 512M
+      <<: *restart-policy
+
+  eureka-server:
+    image: discord-clone/eureka-server:latest
+    build:
+      context: .
+      dockerfile: eureka_server/Dockerfile
+    environment:
+      <<: *common-env
+    ports:
+      - "8761:8761"
+    networks:
+      - discord-swarm-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8761/actuator/health >/dev/null"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 512M
+      <<: *restart-policy
+
+  api-gateway:
+    image: discord-clone/api-gateway:latest
+    build:
+      context: .
+      dockerfile: api_gateway/Dockerfile
+    environment:
+      <<: *common-env
+    ports:
+      - "8080:8080"
+    networks:
+      - discord-swarm-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/actuator/health >/dev/null"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    deploy:
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 10s
+      resources:
+        limits:
+          cpus: "0.75"
+          memory: 768M
+      <<: *restart-policy
+
+  user-service:
+    image: discord-clone/user-service:latest
+    build:
+      context: .
+      dockerfile: user_service/Dockerfile
+    environment:
+      <<: *common-env
+    networks:
+      - discord-swarm-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8081/actuator/health >/dev/null"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: "0.75"
+          memory: 768M
+      <<: *restart-policy
+
+  server-service:
+    image: discord-clone/server-service:latest
+    build:
+      context: .
+      dockerfile: server_service/Dockerfile
+    environment:
+      <<: *common-env
+    networks:
+      - discord-swarm-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8082/actuator/health >/dev/null"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: "0.75"
+          memory: 768M
+      <<: *restart-policy
+
+  message-service:
+    image: discord-clone/message-service:latest
+    build:
+      context: .
+      dockerfile: message_service/Dockerfile
+    environment:
+      <<: *common-env
+    networks:
+      - discord-swarm-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8084/actuator/health >/dev/null"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    deploy:
+      replicas: 3
+      resources:
+        limits:
+          cpus: "1.00"
+          memory: 1G
+      <<: *restart-policy
+
+  media-service:
+    image: discord-clone/media-service:latest
+    build:
+      context: .
+      dockerfile: media_service/Dockerfile
+    environment:
+      <<: *common-env
+    volumes:
+      - media-uploads:/app/media_uploads
+    networks:
+      - discord-swarm-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8085/actuator/health >/dev/null"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: "0.75"
+          memory: 768M
+      <<: *restart-policy
+
+  voice-service:
+    image: discord-clone/voice-service:latest
+    build:
+      context: .
+      dockerfile: voice_service/Dockerfile
+    environment:
+      <<: *common-env
+    networks:
+      - discord-swarm-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8086/actuator/health >/dev/null"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: "0.75"
+          memory: 768M
+      <<: *restart-policy
+
+  notification-service:
+    image: discord-clone/notification-service:latest
+    build:
+      context: .
+      dockerfile: notification_service/Dockerfile
+    environment:
+      <<: *common-env
+    networks:
+      - discord-swarm-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8087/actuator/health >/dev/null"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: "0.75"
+          memory: 768M
+      <<: *restart-policy
+
+  prometheus:
+    image: quay.io/prometheus/prometheus:v2.55.1
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+    volumes:
+      - ./prometheus-swarm.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    networks:
+      - discord-swarm-net
+    deploy:
+      replicas: 1
+      <<: *restart-policy
+
+  grafana:
+    image: grafana/grafana:11.3.0
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+    volumes:
+      - grafana-data:/var/lib/grafana
+    networks:
+      - discord-swarm-net
+    deploy:
+      replicas: 1
+      <<: *restart-policy
+
+volumes:
+  postgres-data:
+  redis-data:
+  rabbitmq-data:
+  meili-data:
+  grafana-data:
+  media-uploads:
+
+networks:
+  discord-swarm-net:
+    driver: overlay

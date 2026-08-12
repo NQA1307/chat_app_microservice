@@ -1,0 +1,78 @@
+CREATE TABLE IF NOT EXISTS servers (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    description VARCHAR(255),
+    image_url VARCHAR(255),
+    owner_id UUID NOT NULL,
+    invite_code VARCHAR(255) NOT NULL UNIQUE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS server_members (
+    id BIGSERIAL PRIMARY KEY,
+    server_id BIGINT NOT NULL,
+    user_id UUID NOT NULL,
+    role VARCHAR(50) NOT NULL DEFAULT 'GUEST',
+    joined_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_members_server FOREIGN KEY (server_id) REFERENCES servers(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS channels (
+    id BIGSERIAL PRIMARY KEY,
+    server_id BIGINT NOT NULL,
+    creator_id UUID NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    type VARCHAR(50) NOT NULL DEFAULT 'TEXT',
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_channels_server FOREIGN KEY (server_id) REFERENCES servers(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS invites (
+    id VARCHAR(26) PRIMARY KEY,
+    sender_id UUID NOT NULL,
+    receiver_id UUID NOT NULL,
+    type VARCHAR(50) NOT NULL,
+    status VARCHAR(50) NOT NULL DEFAULT 'PENDING',
+    target_type VARCHAR(255) NOT NULL,
+    target_id VARCHAR(255) NOT NULL,
+    message TEXT,
+    expires_at TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS server_bans (
+    id BIGSERIAL PRIMARY KEY,
+    server_id BIGINT NOT NULL,
+    user_id UUID NOT NULL,
+    banned_by UUID NOT NULL,
+    reason VARCHAR(500),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_server_bans UNIQUE (server_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS server_mutes (
+    id BIGSERIAL PRIMARY KEY,
+    server_id BIGINT NOT NULL,
+    channel_id BIGINT,
+    user_id UUID NOT NULL,
+    muted_by UUID NOT NULL,
+    type VARCHAR(50) NOT NULL,
+    reason VARCHAR(500),
+    expires_at TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_server_mutes UNIQUE (server_id, channel_id, user_id, type)
+);
+
+CREATE TABLE IF NOT EXISTS moderation_logs (
+    id BIGSERIAL PRIMARY KEY,
+    server_id BIGINT NOT NULL,
+    actor_id UUID NOT NULL,
+    target_user_id UUID NOT NULL,
+    action VARCHAR(100) NOT NULL,
+    reason VARCHAR(500),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
